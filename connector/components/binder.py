@@ -15,6 +15,9 @@ create the binding between them.
 from odoo import fields, models, tools
 from odoo.addons.component.core import AbstractComponent
 
+import logging
+_logger = logging.getLogger(__name__)
+
 
 class Binder(AbstractComponent):
     """ For one record of a model, capable to find an external or
@@ -37,7 +40,7 @@ class Binder(AbstractComponent):
     _odoo_field = 'odoo_id'  # override in sub-classes
     _sync_date_field = 'sync_date'  # override in sub-classes
 
-    def to_internal(self, external_id, unwrap=False):
+    def to_internal(self, external_id, unwrap=False, no_backend_mapping=False):
         """ Give the Odoo recordset for an external ID
 
         :param external_id: external ID for which we want
@@ -48,10 +51,12 @@ class Binder(AbstractComponent):
                  or an empty recordset if the external_id is not mapped
         :rtype: recordset
         """
-        bindings = self.model.with_context(active_test=False).search(
-            [(self._external_field, '=', tools.ustr(external_id)),
-             (self._backend_field, '=', self.backend_record.id)]
-        )
+        domain = [(self._external_field, '=', tools.ustr(external_id))]
+        if not no_backend_mapping:
+            domain.append((self._backend_field, '=', self.backend_record.id))
+        _logger.debug('to_internal: model: %s' % self.model)
+        _logger.debug('to_internal: domain: %s' % domain)
+        bindings = self.model.with_context(active_test=False).search(domain)
         if not bindings:
             if unwrap:
                 return self.model.browse()[self._odoo_field]
