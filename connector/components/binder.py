@@ -61,6 +61,28 @@ class Binder(AbstractComponent):
             bindings = bindings[self._odoo_field]
         return bindings
 
+    def to_internal_without_backend(self, external_id, unwrap=False):
+        """ Give the Odoo recordset for an external ID
+
+        :param external_id: external ID for which we want
+                            the Odoo ID
+        :param unwrap: if True, returns the normal record
+                       else return the binding record
+        :return: a recordset, depending on the value of unwrap,
+                 or an empty recordset if the external_id is not mapped
+        :rtype: recordset
+        """
+        bindings = self.model.with_context(active_test=False).search(
+            [(self._external_field, '=', tools.ustr(external_id))], limit=1)
+        if not bindings:
+            if unwrap:
+                return self.model.browse()[self._odoo_field]
+            return self.model.browse()
+        bindings.ensure_one()
+        if unwrap:
+            bindings = bindings[self._odoo_field]
+        return bindings
+
     def to_external(self, binding, wrap=False):
         """ Give the external ID for an Odoo binding ID
 
